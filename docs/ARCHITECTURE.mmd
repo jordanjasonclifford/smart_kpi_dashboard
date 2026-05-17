@@ -1,0 +1,26 @@
+flowchart LR
+    user["User / Interviewer"] --> ui["app.py<br/>Streamlit UI"]
+
+    sample["data/*.csv<br/>Built-in demo datasets"] --> ui
+    upload["Uploaded CSV<br/>User-provided data"] --> ui
+
+    ui --> mapping["Column Mapping<br/>Auto-detect + user override"]
+    mapping --> schema["kpi_logic.py<br/>detect_schema()"]
+    schema --> compute["kpi_logic.py<br/>compute_kpis()"]
+    compute --> cards["KPI cards<br/>Revenue, orders, profit, margin"]
+    compute --> charts["Plotly charts<br/>Trend explorer"]
+    compute --> context["build_kpi_context()<br/>Compact recent KPI JSON"]
+
+    context --> ai["ai_commentary.py<br/>generate_ai_analysis()"]
+    ai --> fallback["Fallback commentary<br/>No API key required"]
+    ai --> llm{"Live LLM enabled?"}
+    llm -->|"ANTHROPIC_API_KEY"| claude["Anthropic Claude"]
+
+    fallback --> summary["AI Insights + AI Summary sections"]
+    claude --> summary
+
+    summary --> export["Download KPI summary<br/>.txt report"]
+    cards --> ui
+    charts --> ui
+    summary --> ui
+    export --> user

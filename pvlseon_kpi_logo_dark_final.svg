@@ -1,0 +1,55 @@
+<svg width="100%" viewBox="0 0 390 165" role="img" style="" xmlns="http://www.w3.org/2000/svg">
+  <title style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Pvlseon KPI Dashboard logo dark</title>
+  <desc style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Pvlseon KPI Dashboard dark logo with gradient bars and serif wordmark</desc>
+
+  <defs>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7B2FFF"/>
+      <stop offset="100%" stop-color="#FF6B6B"/>
+    </linearGradient>
+    <linearGradient id="glowBar1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7B2FFF"/>
+      <stop offset="100%" stop-color="#7B2FFF" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="glowBar2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E040FB"/>
+      <stop offset="100%" stop-color="#E040FB" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="glowBar3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B6B"/>
+      <stop offset="100%" stop-color="#FF6B6B" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="glowBar4" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF9F43"/>
+      <stop offset="100%" stop-color="#FF9F43" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="darkBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0D0820"/>
+      <stop offset="100%" stop-color="#150E30"/>
+    </linearGradient>
+    <linearGradient id="textGradDark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C084FC"/>
+      <stop offset="50%" stop-color="#F472B6"/>
+      <stop offset="100%" stop-color="#FF8A80"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="380" height="155" rx="16" fill="url(#darkBg)" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <rect x="0" y="0" width="380" height="155" rx="16" fill="none" stroke="#7B2FFF" stroke-width="0.6" stroke-opacity="0.5" style="fill:none;stroke:rgb(123, 47, 255);color:rgb(0, 0, 0);stroke-width:0.6px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Icon -->
+  <rect x="22" y="26" width="52" height="52" rx="14" fill="#1A0A35" style="fill:rgb(26, 10, 53);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <rect x="22" y="26" width="52" height="52" rx="14" fill="none" stroke="url(#iconGrad)" stroke-width="1.2" style="fill:none;color:rgb(0, 0, 0);stroke-width:1.2px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <rect x="30" y="58" width="7" height="12" rx="2" fill="url(#glowBar1)" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <rect x="40" y="51" width="7" height="19" rx="2" fill="url(#glowBar2)" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <rect x="50" y="44" width="7" height="26" rx="2" fill="url(#glowBar3)" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <rect x="60" y="37" width="7" height="33" rx="2" fill="url(#glowBar4)" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Wordmark -->
+  <text x="90" y="60" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700" fill="url(#textGradDark)" letter-spacing="-1" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:Georgia, &quot;Times New Roman&quot;, serif;font-size:28px;font-weight:700;text-anchor:start;dominant-baseline:auto">Pvlseon</text>
+  <text x="91" y="79" font-family="Arial, sans-serif" font-size="10" font-weight="400" fill="#9D7EC9" letter-spacing="3" style="fill:rgb(157, 126, 201);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:Arial, sans-serif;font-size:10px;font-weight:400;text-anchor:start;dominant-baseline:auto">KPI DASHBOARD</text>
+
+  <!-- Tagline -->
+  <text x="22" y="131" font-family="Georgia, 'Times New Roman', serif" font-size="11" font-style="italic" fill="#6B4FA0" style="fill:rgb(107, 79, 160);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:Georgia, &quot;Times New Roman&quot;, serif;font-size:11px;font-weight:400;font-style:italic;text-anchor:start;dominant-baseline:auto">Your data. Alive.</text>
+
+</svg>

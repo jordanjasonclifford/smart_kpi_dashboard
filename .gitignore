@@ -1,0 +1,10 @@
+__pycache__/
+.pytest_cache/
+.streamlit/secrets.toml
+.venv/
+.env
+*.pyc
+*.log
+*.docx
+docx_extract/
+Smart KPI Dashboard.zip
