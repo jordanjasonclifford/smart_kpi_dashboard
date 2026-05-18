@@ -6,6 +6,39 @@ Proof-of-concept dashboard for the take-home brief: upload structured business d
 
 This version uses Streamlit, Pandas, Plotly, and optional Claude commentary. Streamlit keeps the demo shippable within a short take-home window while still showing the full data-to-insight workflow the rubric rewards most: ingestion, KPI accuracy, visualization clarity, and narrative interpretation.
 
+## Tech stack
+
+- Python for the application and KPI logic
+- Streamlit for the interactive dashboard UI
+- Pandas for CSV loading, schema normalization, and KPI aggregation
+- Plotly for interactive trend charts
+- Anthropic Claude API for optional AI Insights and AI Summary generation
+- python-dotenv for local `.env` key loading
+- ReportLab and Kaleido for PDF export with KPI cards, chart images, and AI text
+- Pytest for focused KPI logic tests
+
+## Architecture
+
+Pvlseon is split into a small Streamlit UI layer, reusable KPI computation logic, and optional AI commentary generation.
+
+```text
+CSV upload or demo data
+        |
+        v
+app.py loads data and collects column mappings
+        |
+        v
+kpi_logic.py detects schema, computes monthly KPIs, and formats dashboard context
+        |
+        v
+app.py renders KPI cards, Plotly trend charts, AI sections, and PDF export
+        |
+        v
+ai_commentary.py calls Claude when a key is available, otherwise returns local fallback commentary
+```
+
+The full system diagram is available in [`docs/ARCHITECTURE.mmd`](docs/ARCHITECTURE.mmd), with a rendered image at [`images/dashboard_architecture.png`](images/dashboard_architecture.png).
+
 ## Features
 
 - CSV upload with included Superstore-style demo datasets
@@ -16,7 +49,7 @@ This version uses Streamlit, Pandas, Plotly, and optional Claude commentary. Str
 - AI Insights section with narrative commentary per KPI, plus a separate AI Summary paragraph
 - Claude commentary when `ANTHROPIC_API_KEY` or `CLAUDE_API_KEY` is configured, with deterministic fallback commentary for no-key demos
 - AI generation is button-triggered, so refreshes and filter changes do not repeatedly call Claude
-- Text export of the KPI summary
+- PDF export with KPI cards, chart images, AI Insights, and AI Summary text
 
 ## Setup
 
@@ -101,11 +134,12 @@ You can replace it with any public sales, marketing, or operations CSV. The app 
 - Order count is computed from unique `Order ID` when available, otherwise from the mapped quantity/order column.
 - Profit margin is computed as `Profit / Sales` when a profit column exists.
 - The fallback commentary is deterministic and demo-friendly, but it is labeled as fallback mode. Live Claude output will be richer when an API key is configured.
-- Forecasting and PDF/email export are noted as next-step enhancements rather than core scope.
+- Forecasting, email delivery, and saved dashboard configurations are noted as next-step enhancements rather than core scope.
 
 ## Submission assets
 
 - Working demo: run with `streamlit run app.py` or deploy to Streamlit Cloud.
 - README: this file.
 - Demo data: the CSV files in `data/`.
+- Architecture diagram: `docs/ARCHITECTURE.mmd` and `images/dashboard_architecture.png`.
 - Five-slide outline: `docs/SLIDE_DECK_OUTLINE.md`.
