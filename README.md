@@ -6,6 +6,10 @@ Proof-of-concept dashboard for the take-home brief: upload structured business d
 
 This version uses Streamlit, Pandas, Plotly, and optional Claude commentary. Streamlit keeps the demo shippable within a short take-home window while still showing the full data-to-insight workflow the rubric rewards most: ingestion, KPI accuracy, visualization clarity, and narrative interpretation.
 
+## Demo Video
+
+You can watch a quick demo video here to see how the process works, https://www.loom.com/share/dd005ae4a69a447eb25c083c55cea330 
+
 ## Tech stack
 
 - Python for the application and KPI logic

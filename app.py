@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import re
 from io import BytesIO
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -267,6 +268,19 @@ def df_fingerprint(df: pd.DataFrame) -> str:
     # Only the first 500 rows are used because this is meant as a UI/session signature, not security.
     sample = df.head(500).to_csv(index=False)
     return hashlib.sha256(sample.encode("utf-8")).hexdigest()[:12]
+
+
+def safe_export_slug(value: str) -> str:
+    # Keeps downloaded report names readable while avoiding weird filename characters.
+    slug = re.sub(r"[^a-zA-Z0-9]+", "_", value).strip("_").lower()
+    return slug[:60] or "dataset"
+
+
+def selected_dataset_name(uploaded_file, demo_dataset: str | None) -> str:
+    # Uses the real CSV filename in reports so exports can be matched back to the dataset.
+    if uploaded_file is not None:
+        return uploaded_file.name
+    return demo_dataset or "uploaded_dataset.csv"
 
 
 def analysis_signature(dataset_id: str, schema_overrides: dict, group_by: str | None, model: str) -> str:
@@ -552,12 +566,14 @@ def build_pdf_report(
     figures: list,
     analysis: dict[str, str],
     dataset_id: str,
+    dataset_name: str,
 ) -> bytes:
     # Builds the PDF deliverable shown in the bottom download button.
     # The PDF includes KPI cards, chart images, AI Insights, and the AI Summary.
     import tempfile
 
     import plotly.io as pio
+    from plotly.graph_objects import Figure
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -647,6 +663,7 @@ def build_pdf_report(
 
     story = [
         Paragraph(f"{APP_TITLE} KPI Report", styles["ReportTitle"]),
+        Paragraph(f"CSV: {escape(dataset_name)}", styles["SmallText"]),
         Paragraph(f"Dataset ID: {dataset_id}", styles["SmallText"]),
         Spacer(1, 0.12 * inch),
         Paragraph("KPI Cards", styles["SectionHeading"]),
@@ -703,8 +720,42 @@ def build_pdf_report(
         # Kaleido converts Plotly charts to PNG so the PDF has real chart images.
         # Exporting the charts in one batch is much faster than starting the image engine per chart.
         image_paths = [Path(temp_dir) / f"chart_{index}.png" for index, _ in enumerate(figures)]
+        export_figures = []
+        for fig in figures:
+            # Make the PDF chart titles heavier than the interactive dashboard titles.
+            # The dashboard uses dark Plotly styling, but the PDF page is white.
+            # Export copies need dark text so titles and axis labels stay readable.
+            export_fig = Figure(fig.to_dict())
+            title_text = export_fig.layout.title.text or ""
+            export_fig.update_layout(
+                template="plotly_white",
+                paper_bgcolor="#ffffff",
+                plot_bgcolor="#ffffff",
+                font=dict(color="#172033", family="Arial"),
+                title=dict(
+                    text=f"<b>{title_text}</b>",
+                    font=dict(size=24, family="Arial Black", color="#172033"),
+                ),
+            )
+            export_fig.update_xaxes(
+                title_font=dict(color="#172033", size=15, family="Arial Black"),
+                tickfont=dict(color="#172033", size=11),
+                gridcolor="#d9e0ea",
+                zerolinecolor="#d9e0ea",
+                linecolor="#6b7280",
+            )
+            export_fig.update_yaxes(
+                title_font=dict(color="#172033", size=15, family="Arial Black"),
+                tickfont=dict(color="#172033", size=11),
+                gridcolor="#d9e0ea",
+                zerolinecolor="#d9e0ea",
+                linecolor="#6b7280",
+            )
+            export_fig.update_traces(line_color="#111827", marker_color="#111827", selector=dict(type="scatter"))
+            export_fig.update_traces(marker_color="#246bfe", selector=dict(type="bar"))
+            export_figures.append(export_fig)
         pio.write_images(
-            figures,
+            export_figures,
             image_paths,
             format="png",
             width=900,
@@ -809,6 +860,8 @@ def main() -> None:
         st.info("Upload a CSV or choose a built-in demo dataset to begin.")
         return
 
+    dataset_name = selected_dataset_name(uploaded, demo_dataset)
+
     # Detect columns, then let the user override them in the mapping expander.
     schema = infer_initial_schema(raw)
     schema_overrides = render_column_mapping(raw, schema)
@@ -901,6 +954,7 @@ def main() -> None:
                     figures=figures,
                     analysis=analysis,
                     dataset_id=dataset_id,
+                    dataset_name=dataset_name,
                 )
         except Exception as exc:
             st.session_state.pop("pdf_report", None)
@@ -910,10 +964,11 @@ def main() -> None:
             st.caption(f"Export error: {exc}")
 
     if st.session_state.get("pdf_report"):
+        export_slug = safe_export_slug(Path(dataset_name).stem)
         st.download_button(
             "Download KPI PDF",
             data=st.session_state["pdf_report"],
-            file_name="pvlseon_kpi_report.pdf",
+            file_name=f"pvlseon_{export_slug}_{dataset_id}_kpi_report.pdf",
             mime="application/pdf",
         )
 
