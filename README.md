@@ -41,7 +41,9 @@ app.py renders KPI cards, Plotly trend charts, AI sections, and PDF export
 ai_commentary.py calls Claude when a key is available, otherwise returns local fallback commentary
 ```
 
-The full system diagram is available in [`docs/ARCHITECTURE.mmd`](docs/ARCHITECTURE.mmd), with a rendered image at [`images/dashboard_architecture.png`](images/dashboard_architecture.png).
+The full Mermaid source is available in [`docs/ARCHITECTURE.mmd`](docs/ARCHITECTURE.mmd).
+
+![Pvlseon architecture diagram](images/dashboard_architecture.png)
 
 ## Features
 
@@ -114,7 +116,7 @@ The app always computes KPI facts locally first. Claude is used for interpretati
 
 Original dataset sourced from: `https://www.kaggle.com/datasets/divyjn28/superstore-dataset`, included as `super_store_regular.csv`.
 
-Synthetic versions in the rest of the `data/` folder resemble the same structure for testing across domains.
+Synthetic versions (created with Claude) in the rest of the `data/` folder resemble the same structure for testing across domains.
 
 The demo datasets use a common business schema:
 
@@ -146,4 +148,4 @@ You can replace it with any public sales, marketing, or operations CSV. The app 
 - README: this file.
 - Demo data: the CSV files in `data/`.
 - Architecture diagram: `docs/ARCHITECTURE.mmd` and `images/dashboard_architecture.png`.
-- Five-slide outline: `docs/SLIDE_DECK_OUTLINE.md`.
+- Five-slide outline: 'Pvlseon KPI PowerPoint Slides.pdf'.
