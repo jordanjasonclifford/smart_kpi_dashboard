@@ -1,0 +1,67 @@
+{
+  "output": "C:\\Users\\jorda\\Programs\\smart_kpi_dashboard\\Pvlseon Takehome Summary Deck.pptx",
+  "outputBytes": 491650,
+  "slideCount": 5,
+  "slideSize": {
+    "width": 1280,
+    "height": 720
+  },
+  "previewDir": "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\preview",
+  "previewPaths": [
+    "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\preview\\slide-01.png",
+    "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\preview\\slide-02.png",
+    "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\preview\\slide-03.png",
+    "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\preview\\slide-04.png",
+    "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\preview\\slide-05.png"
+  ],
+  "layoutDir": "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\layout\\final",
+  "layoutResults": [
+    {
+      "layoutPath": "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\layout\\final\\slide-01.layout.json"
+    },
+    {
+      "layoutPath": "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\layout\\final\\slide-02.layout.json"
+    },
+    {
+      "layoutPath": "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\layout\\final\\slide-03.layout.json"
+    },
+    {
+      "layoutPath": "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\layout\\final\\slide-04.layout.json"
+    },
+    {
+      "layoutPath": "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\layout\\final\\slide-05.layout.json"
+    }
+  ],
+  "slides": [
+    {
+      "index": 1,
+      "requestedSlideNumber": 1,
+      "modulePath": "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\slides\\slide-01.mjs",
+      "exportName": "slide01"
+    },
+    {
+      "index": 2,
+      "requestedSlideNumber": 2,
+      "modulePath": "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\slides\\slide-02.mjs",
+      "exportName": "slide02"
+    },
+    {
+      "index": 3,
+      "requestedSlideNumber": 3,
+      "modulePath": "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\slides\\slide-03.mjs",
+      "exportName": "slide03"
+    },
+    {
+      "index": 4,
+      "requestedSlideNumber": 4,
+      "modulePath": "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\slides\\slide-04.mjs",
+      "exportName": "slide04"
+    },
+    {
+      "index": 5,
+      "requestedSlideNumber": 5,
+      "modulePath": "C:\\Users\\jorda\\AppData\\Local\\Temp\\codex-presentations\\019e326b-f0da-76a1-b2fd-e1c4e5095783\\pvlseon-summary-deck\\slides\\slide-05.mjs",
+      "exportName": "slide05"
+    }
+  ]
+}

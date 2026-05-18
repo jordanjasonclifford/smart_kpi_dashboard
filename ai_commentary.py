@@ -7,9 +7,13 @@ from typing import Any
 from dotenv import load_dotenv
 
 
+# Load local API keys from .env for development.
 load_dotenv()
 
 
+# System prompt used for Claude commentary.
+# The app computes the numbers, Claude explains what they mean.
+# This keeps the model away from doing arithmetic and makes the output easier to audit.
 SYSTEM_INSTRUCTIONS = """
 You are an analytics partner writing for a mid-size operations leadership team.
 Translate KPI movement into concise business commentary.
@@ -25,12 +29,17 @@ def generate_ai_analysis(
     model: str = "claude-sonnet-4-20250514",
     enabled: bool = True,
 ) -> dict[str, str]:
+    # Returns Claude commentary when enabled and configured.
+    # Falls back to local commentary so the demo still works without a key.
+    # The app calls this only after the user clicks the generate button.
     if not enabled or not has_anthropic_api_key():
         return generate_fallback_analysis(context)
 
     try:
         return _generate_with_anthropic(context, model)
     except Exception as exc:
+        # If the network, model, or key fails, the dashboard still returns a usable result.
+        # The error is attached to revenue so it is visible during development.
         fallback = generate_fallback_analysis(context)
         fallback["revenue"] += f" Claude was unavailable, so this demo is showing local fallback commentary. Error: {exc}"
         return fallback
@@ -43,16 +52,20 @@ def generate_ai_summary(
     model: str = "claude-sonnet-4-20250514",
     enabled: bool = True,
 ) -> dict[str, str]:
+    # Backwards-compatible alias in case older code imports this name.
     return generate_ai_analysis(context=context, model=model, enabled=enabled)
 
 
 def _generate_with_anthropic(context: dict[str, Any], model: str) -> dict[str, str]:
+    # Sends the KPI context to Claude and parses the JSON response.
+    # This is a one-shot analysis call, not a chat history loop.
     api_key = _get_anthropic_api_key()
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY is not set")
 
     from anthropic import Anthropic
 
+    # Initialize the Anthropic client using the API key from .env or Streamlit secrets.
     client = Anthropic(api_key=api_key)
     response = client.messages.create(
         model=model,
@@ -66,10 +79,13 @@ def _generate_with_anthropic(context: dict[str, Any], model: str) -> dict[str, s
 
 
 def has_anthropic_api_key() -> bool:
+    # Used by the UI to decide whether the button should say Claude or Demo.
     return bool(_get_anthropic_api_key())
 
 
 def _get_anthropic_api_key() -> str | None:
+    # Supports both names because some local projects use CLAUDE_API_KEY.
+    # Streamlit secrets are supported for hosted deployments.
     env_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY")
     if env_key:
         return env_key
@@ -83,6 +99,8 @@ def _get_anthropic_api_key() -> str | None:
 
 
 def _build_prompt(context: dict[str, Any]) -> str:
+    # Builds the user message with the compact KPI history.
+    # The context is already aggregated, so no raw customer or order-level data is sent.
     return f"""
 Analyze this KPI history and write executive commentary.
 
@@ -99,6 +117,8 @@ KPI context:
 
 
 def _parse_json_response(text: str) -> dict[str, str]:
+    # Claude should return JSON, but this also handles fenced code blocks.
+    # It also filters out unexpected keys so the UI only sees fields it knows how to render.
     cleaned = text.strip()
     if cleaned.startswith("```"):
         cleaned = cleaned.strip("`")
@@ -109,12 +129,15 @@ def _parse_json_response(text: str) -> dict[str, str]:
         for key, value in parsed.items()
         if key in {"revenue", "orders", "profit", "profit_margin", "ai_summary", "total_summary"}
     }
+    # Keeps older total_summary responses working after the UI rename.
     if "total_summary" in parsed_summary and "ai_summary" not in parsed_summary:
         parsed_summary["ai_summary"] = parsed_summary.pop("total_summary")
     return parsed_summary
 
 
 def _stringify_summary_value(value: Any) -> str:
+    # Keeps weird model output from rendering as one character per line.
+    # If Claude returns a list by mistake, collapse it into one paragraph.
     if isinstance(value, list):
         return " ".join(str(item).strip() for item in value if str(item).strip())
     if isinstance(value, dict):
@@ -123,6 +146,8 @@ def _stringify_summary_value(value: Any) -> str:
 
 
 def generate_fallback_analysis(context: dict[str, Any]) -> dict[str, str]:
+    # Local deterministic commentary used when Claude is off or unavailable.
+    # The wording is fixed, but the values and trend directions still come from the active dataset.
     history = context["history"]
     latest = history[-1]
     previous = history[-2] if len(history) > 1 else latest
@@ -164,20 +189,26 @@ def generate_fallback_analysis(context: dict[str, Any]) -> dict[str, str]:
 
 
 def generate_fallback_summary(context: dict[str, Any]) -> dict[str, str]:
+    # Backwards-compatible alias for the old fallback function name.
     return generate_fallback_analysis(context)
 
 
 def _pct_change(current: float, previous: float) -> float:
+    # Calculates percentage change while avoiding a zero division crash.
+    # A zero previous value gets treated as no change for fallback wording.
     if previous == 0:
         return 0
     return (current - previous) / abs(previous)
 
 
 def _point_change(current: float, previous: float) -> float:
+    # Used for percentage-point style movement like profit margin.
     return current - previous
 
 
 def _direction_phrase(change: float) -> str:
+    # Converts a numeric change into plain wording for fallback commentary.
+    # Small moves are called roughly flat so the app does not overstate noise.
     if abs(change) < 0.005:
         return "roughly flat"
     direction = "up" if change > 0 else "down"
@@ -185,6 +216,8 @@ def _direction_phrase(change: float) -> str:
 
 
 def _point_phrase(change: float) -> str:
+    # Formats percentage-point movement for fallback commentary.
+    # Used for rates like profit margin where point movement is easier to read.
     if abs(change) < 0.0005:
         return "essentially unchanged"
     direction = "up" if change > 0 else "down"

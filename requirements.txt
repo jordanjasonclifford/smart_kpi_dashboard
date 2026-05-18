@@ -4,3 +4,5 @@ plotly>=5.22
 anthropic>=0.34
 python-dotenv>=1.0
 pytest>=8.2
+reportlab>=4.2
+kaleido>=1.3

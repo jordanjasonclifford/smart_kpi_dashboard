@@ -1,26 +1,53 @@
+---
+config:
+  layout: elk
+---
 flowchart LR
-    user["User / Interviewer"] --> ui["app.py<br/>Streamlit UI"]
+    user["User / Interviewer"] --> ui["app.py<br/>Pvlseon Streamlit UI"]
 
-    sample["data/*.csv<br/>Built-in demo datasets"] --> ui
-    upload["Uploaded CSV<br/>User-provided data"] --> ui
+    sample["data/*.csv<br/>Built-in demo datasets"] --> load["load_csv()<br/>Flexible CSV loading"]
+    upload["Uploaded CSV<br/>User-provided data"] --> load
+    load --> ui
 
-    ui --> mapping["Column Mapping<br/>Auto-detect + user override"]
+    ui --> mapping["Column Mapping expander<br/>Auto-detect + user override"]
     mapping --> schema["kpi_logic.py<br/>detect_schema()"]
     schema --> compute["kpi_logic.py<br/>compute_kpis()"]
-    compute --> cards["KPI cards<br/>Revenue, orders, profit, margin"]
+
+    compute --> cards["Top KPI cards<br/>Revenue, orders, profit, margin, AOV, units, discount"]
     compute --> charts["Plotly charts<br/>Trend explorer"]
     compute --> context["build_kpi_context()<br/>Compact recent KPI JSON"]
 
-    context --> ai["ai_commentary.py<br/>generate_ai_analysis()"]
-    ai --> fallback["Fallback commentary<br/>No API key required"]
-    ai --> llm{"Live LLM enabled?"}
-    llm -->|"ANTHROPIC_API_KEY"| claude["Anthropic Claude"]
+    context --> gate["Generate Insights button<br/>Prevents refresh API calls"]
+    gate --> session["st.session_state<br/>Stores generated analysis"]
+    gate --> ai["ai_commentary.py<br/>generate_ai_analysis()"]
 
-    fallback --> summary["AI Insights + AI Summary sections"]
-    claude --> summary
+    ai --> keycheck{"Claude enabled<br/>and API key found?"}
+    keycheck -->|ANTHROPIC_API_KEY or<br/>CLAUDE_API_KEY from<br/>.env, env, or<br/>Streamlit secrets| claude["Anthropic Claude<br/>messages.create()"]
+    keycheck -->|No key or disabled| fallback["Fallback commentary<br/>No API key required"]
 
-    summary --> export["Download KPI summary<br/>.txt report"]
+    claude --> analysis["AI Insights<br/>Per-KPI commentary"]
+    fallback --> analysis
+    claude --> summary["AI Summary<br/>One paragraph synthesis"]
+    fallback --> summary
+
+    analysis --> export["Download KPI summary<br/>.txt report"]
+    summary --> export
     cards --> ui
     charts --> ui
+    analysis --> ui
     summary --> ui
     export --> user
+
+    classDef input stroke:#4ade80,fill:#f0fdf4
+    classDef process stroke:#38bdf8,fill:#f0f9ff
+    classDef logic stroke:#a78bfa,fill:#f5f3ff
+    classDef output stroke:#fb923c,fill:#fff7ed
+    classDef decision stroke:#facc15,fill:#fefce8
+    classDef ai stroke:#f87171,fill:#fef2f2
+
+    class user,sample,upload input
+    class ui,load,mapping,cards,charts process
+    class schema,compute,context,session logic
+    class gate decision
+    class ai,claude,fallback,analysis,summary ai
+    class export output

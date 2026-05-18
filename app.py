@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-import hashlib
 import base64
+import hashlib
+from io import BytesIO
 from pathlib import Path
+from xml.sax.saxutils import escape
 
 import pandas as pd
 import plotly.express as px
@@ -26,6 +28,7 @@ DEFAULT_DEMO_DATASET = "super_store_regular.csv"
 LOGO_PATH = Path("pvlseon_kpi_logo_dark_final.svg")
 
 
+# Configure the Streamlit page before anything gets rendered.
 st.set_page_config(
     page_title=APP_TITLE,
     layout="wide",
@@ -34,6 +37,7 @@ st.set_page_config(
 
 
 def _inject_styles() -> None:
+    # App styling keeps the dark shell and white KPI/insight cards balanced.
     st.markdown(
         """
         <style>
@@ -209,6 +213,8 @@ def _inject_styles() -> None:
 
 @st.cache_data(show_spinner=False)
 def read_csv_flexible(source) -> pd.DataFrame:
+    # Reads uploaded or local CSVs while handling the encodings used by the demo files.
+    # The original Superstore-style data can include Latin-1 characters, so utf-8 alone is not safe.
     last_error: Exception | None = None
     for encoding in ["utf-8", "utf-8-sig", "latin1"]:
         try:
@@ -221,6 +227,8 @@ def read_csv_flexible(source) -> pd.DataFrame:
 
 
 def list_demo_datasets() -> list[str]:
+    # Finds built-in CSV demos and keeps the main Superstore file first.
+    # The rest of the files are still available from the sidebar for quick scenario switching.
     if not DATA_DIR.exists():
         return []
     datasets = sorted(path.name for path in DATA_DIR.glob("*.csv") if path.name != "sample_kpi_data.csv")
@@ -232,6 +240,7 @@ def list_demo_datasets() -> list[str]:
 
 @st.cache_data(show_spinner=False)
 def load_csv(uploaded_file, demo_dataset: str | None) -> pd.DataFrame:
+    # Uses an uploaded CSV when present, otherwise falls back to the selected demo dataset.
     if uploaded_file is not None:
         return read_csv_flexible(uploaded_file)
     if demo_dataset:
@@ -241,20 +250,28 @@ def load_csv(uploaded_file, demo_dataset: str | None) -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False)
 def cached_compute(raw: pd.DataFrame, group_by: str | None, schema_overrides: dict) -> dict:
+    # Caches KPI computation so filter changes do not keep recomputing the same result.
+    # The raw dataframe and mapping are part of the cache key, so changed data still recalculates.
     return compute_kpis(raw, group_by=group_by, schema_overrides=schema_overrides)
 
 
 @st.cache_data(show_spinner=False)
 def cached_ai_analysis(context: dict, model: str, enabled: bool, key_available: bool) -> dict[str, str]:
+    # Caches Claude or fallback output after the user explicitly generates insights.
+    # The UI button controls when this function is called, which avoids surprise API usage.
     return generate_ai_analysis(context=context, model=model, enabled=enabled)
 
 
 def df_fingerprint(df: pd.DataFrame) -> str:
+    # Creates a short stable ID so the app knows when the dataset changed.
+    # Only the first 500 rows are used because this is meant as a UI/session signature, not security.
     sample = df.head(500).to_csv(index=False)
     return hashlib.sha256(sample.encode("utf-8")).hexdigest()[:12]
 
 
 def analysis_signature(dataset_id: str, schema_overrides: dict, group_by: str | None, model: str) -> str:
+    # Tracks the inputs that should invalidate old AI insights.
+    # If any of these values change, the old commentary may no longer match the charts.
     payload = {
         "dataset_id": dataset_id,
         "schema_overrides": schema_overrides,
@@ -265,6 +282,8 @@ def analysis_signature(dataset_id: str, schema_overrides: dict, group_by: str | 
 
 
 def render_status_band(items: list[tuple[str, str]]) -> None:
+    # Renders compact dataset metadata near the top of the dashboard.
+    # This replaces a bulky overview block and makes the loaded data context easy to scan.
     html = "<div class='status-grid'>"
     for label, value in items:
         html += (
@@ -278,6 +297,8 @@ def render_status_band(items: list[tuple[str, str]]) -> None:
 
 
 def render_header() -> None:
+    # Loads the logo as a data URI so Streamlit renders it as one clean image.
+    # Embedding the raw SVG directly caused the wordmark to fight the page styling.
     logo_src = ""
     if LOGO_PATH.exists():
         encoded_logo = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
@@ -295,17 +316,22 @@ def render_header() -> None:
 
 
 def column_options(df: pd.DataFrame, include_none: bool = False) -> list[str]:
+    # Builds selectbox options from whatever CSV columns are available.
     options = list(df.columns)
     return ["None"] + options if include_none else options
 
 
 def option_index(options: list[str], value: str | None) -> int:
+    # Picks the detected column in a selectbox when it exists.
     if value and value in options:
         return options.index(value)
     return 0
 
 
 def infer_initial_schema(raw: pd.DataFrame) -> Schema:
+    # Tries normal schema detection first.
+    # If that fails, makes a reasonable first guess so the user can fix mapping manually.
+    # This keeps the app usable even when someone uploads a CSV with strange column names.
     try:
         return detect_schema(raw)
     except ValueError:
@@ -336,6 +362,8 @@ def infer_initial_schema(raw: pd.DataFrame) -> Schema:
 
 
 def render_column_mapping(raw: pd.DataFrame, schema) -> dict[str, str | None]:
+    # Lets the user correct the auto-detected schema without editing code.
+    # It is collapsed by default because mapping is setup work, not the main dashboard story.
     required_options = column_options(raw)
     optional_options = column_options(raw, include_none=True)
 
@@ -378,6 +406,7 @@ def render_column_mapping(raw: pd.DataFrame, schema) -> dict[str, str | None]:
             )
 
     def clean(value: str) -> str | None:
+        # Streamlit selectboxes need a string option, but the KPI code wants None.
         return None if value == "None" else value
 
     return {
@@ -394,6 +423,8 @@ def render_column_mapping(raw: pd.DataFrame, schema) -> dict[str, str | None]:
 
 
 def render_kpi_cards(latest: dict, previous: dict | None) -> None:
+    # Shows the main KPI facts once at the top of the dashboard.
+    # AI sections below interpret these same numbers instead of repeating the cards.
     ordered = [
         "revenue",
         "orders",
@@ -410,6 +441,7 @@ def render_kpi_cards(latest: dict, previous: dict | None) -> None:
         value = latest.get(key)
         prev_value = previous.get(key) if previous else None
         delta = format_delta(value, prev_value, spec["kind"])
+        # Color the delta badge based on whether the metric moved up or down.
         delta_class = "neutral"
         if delta.startswith("up"):
             delta_class = "positive"
@@ -429,6 +461,8 @@ def render_kpi_cards(latest: dict, previous: dict | None) -> None:
 
 
 def style_chart(fig, yaxis_tickprefix: str | None = None, yaxis_tickformat: str | None = None):
+    # Applies one Plotly theme so all charts feel like the same dashboard.
+    # Bar traces and line traces support different style properties, so trace-specific styling stays light.
     fig.update_layout(
         template="plotly_dark",
         paper_bgcolor="rgba(0,0,0,0)",
@@ -452,59 +486,259 @@ def style_chart(fig, yaxis_tickprefix: str | None = None, yaxis_tickformat: str 
     return fig
 
 
-def render_charts(monthly: pd.DataFrame, group_by: str | None) -> None:
-    left, right = st.columns(2)
-
+def build_chart_figures(monthly: pd.DataFrame, group_by: str | None) -> list:
+    # Creates the chart figures once so the page and PDF export use the same visuals.
+    # When a drill-down is selected, Plotly uses it as the color dimension for comparison.
     color_arg = group_by if group_by and group_by in monthly.columns else None
+    figures = []
+    revenue_fig = px.line(
+        monthly,
+        x="period",
+        y="revenue",
+        color=color_arg,
+        markers=True,
+        title="Revenue Trend",
+    )
+    figures.append(style_chart(revenue_fig, yaxis_tickprefix="$"))
 
-    with left:
-        fig = px.line(
-            monthly,
-            x="period",
-            y="revenue",
-            color=color_arg,
-            markers=True,
-            title="Revenue Trend",
-        )
-        st.plotly_chart(style_chart(fig, yaxis_tickprefix="$"), width="stretch")
+    profit_fig = px.line(
+        monthly,
+        x="period",
+        y="profit",
+        color=color_arg,
+        markers=True,
+        title="Profit Trend",
+    )
+    figures.append(style_chart(profit_fig, yaxis_tickprefix="$"))
 
-    with right:
-        fig = px.line(
-            monthly,
-            x="period",
-            y="profit",
-            color=color_arg,
-            markers=True,
-            title="Profit Trend",
-        )
-        st.plotly_chart(style_chart(fig, yaxis_tickprefix="$"), width="stretch")
+    orders_fig = px.bar(
+        monthly,
+        x="period",
+        y="orders",
+        color=color_arg,
+        title="Orders by Period",
+    )
+    orders_fig = style_chart(orders_fig)
+    orders_fig.update_traces(marker_color="#7cc7ff")
+    figures.append(orders_fig)
 
-    left, right = st.columns(2)
-    with left:
-        fig = px.bar(
-            monthly,
-            x="period",
-            y="orders",
-            color=color_arg,
-            title="Orders by Period",
-        )
-        fig = style_chart(fig)
-        fig.update_traces(marker_color="#7cc7ff")
-        st.plotly_chart(fig, width="stretch")
+    margin_fig = px.line(
+        monthly,
+        x="period",
+        y="profit_margin",
+        color=color_arg,
+        markers=True,
+        title="Profit Margin Trend",
+    )
+    figures.append(style_chart(margin_fig, yaxis_tickformat=".1%"))
+    return figures
 
-    with right:
-        fig = px.line(
-            monthly,
-            x="period",
-            y="profit_margin",
-            color=color_arg,
-            markers=True,
-            title="Profit Margin Trend",
+
+def render_charts(figures: list) -> None:
+    # Renders the trend explorer from prebuilt figures.
+    # The same figure list is later exported into the PDF as chart images.
+    for index in range(0, len(figures), 2):
+        left, right = st.columns(2)
+        with left:
+            st.plotly_chart(figures[index], width="stretch")
+        if index + 1 < len(figures):
+            with right:
+                st.plotly_chart(figures[index + 1], width="stretch")
+
+
+def build_pdf_report(
+    latest: dict,
+    previous: dict | None,
+    figures: list,
+    analysis: dict[str, str],
+    dataset_id: str,
+) -> bytes:
+    # Builds the PDF deliverable shown in the bottom download button.
+    # The PDF includes KPI cards, chart images, AI Insights, and the AI Summary.
+    import tempfile
+
+    import plotly.io as pio
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import (
+        Image,
+        KeepTogether,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=0.45 * inch,
+        leftMargin=0.45 * inch,
+        topMargin=0.45 * inch,
+        bottomMargin=0.45 * inch,
+        title=f"{APP_TITLE} KPI Report",
+    )
+    styles = getSampleStyleSheet()
+    styles.add(
+        ParagraphStyle(
+            name="ReportTitle",
+            parent=styles["Title"],
+            fontName="Helvetica-Bold",
+            fontSize=22,
+            leading=26,
+            textColor=colors.HexColor("#172033"),
+            spaceAfter=6,
         )
-        st.plotly_chart(style_chart(fig, yaxis_tickformat=".1%"), width="stretch")
+    )
+    styles.add(
+        ParagraphStyle(
+            name="SectionHeading",
+            parent=styles["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=14,
+            leading=18,
+            textColor=colors.HexColor("#172033"),
+            spaceBefore=14,
+            spaceAfter=8,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="CardLabel",
+            parent=styles["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=7,
+            leading=9,
+            textColor=colors.HexColor("#637083"),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="CardValue",
+            parent=styles["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=14,
+            leading=17,
+            textColor=colors.HexColor("#172033"),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="SmallText",
+            parent=styles["Normal"],
+            fontSize=8,
+            leading=10,
+            textColor=colors.HexColor("#637083"),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="InsightText",
+            parent=styles["Normal"],
+            fontSize=9,
+            leading=12,
+            textColor=colors.HexColor("#172033"),
+        )
+    )
+
+    story = [
+        Paragraph(f"{APP_TITLE} KPI Report", styles["ReportTitle"]),
+        Paragraph(f"Dataset ID: {dataset_id}", styles["SmallText"]),
+        Spacer(1, 0.12 * inch),
+        Paragraph("KPI Cards", styles["SectionHeading"]),
+    ]
+
+    card_cells = []
+    for key in [
+        "revenue",
+        "orders",
+        "profit",
+        "profit_margin",
+        "avg_order_value",
+        "units_sold",
+        "avg_discount",
+    ]:
+        spec = KPI_SPECS[key]
+        value = latest.get(key)
+        prev_value = previous.get(key) if previous else None
+        delta = format_delta(value, prev_value, spec["kind"])
+        card_cells.append(
+            [
+                Paragraph(escape(spec["label"].upper()), styles["CardLabel"]),
+                Paragraph(escape(format_metric(value, spec["kind"])), styles["CardValue"]),
+                Paragraph(escape(delta), styles["SmallText"]),
+            ]
+        )
+
+    # ReportLab tables want a rectangular grid, so the final blank cell keeps the card layout even.
+    card_cells.append([Paragraph("", styles["SmallText"])])
+    card_rows = [
+        [card_cells[0], card_cells[1], card_cells[2], card_cells[3]],
+        [card_cells[4], card_cells[5], card_cells[6], card_cells[7]],
+    ]
+    card_table = Table(card_rows, colWidths=[1.82 * inch] * 4, rowHeights=[0.72 * inch] * 2)
+    card_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f7f9fd")),
+                ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#dfe5ee")),
+                ("INNERGRID", (0, 0), (-1, -1), 0.6, colors.HexColor("#dfe5ee")),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 9),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 9),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ]
+        )
+    )
+    story.append(card_table)
+    story.append(Spacer(1, 0.08 * inch))
+
+    story.append(Paragraph("Trend Images", styles["SectionHeading"]))
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Kaleido converts Plotly charts to PNG so the PDF has real chart images.
+        # Exporting the charts in one batch is much faster than starting the image engine per chart.
+        image_paths = [Path(temp_dir) / f"chart_{index}.png" for index, _ in enumerate(figures)]
+        pio.write_images(
+            figures,
+            image_paths,
+            format="png",
+            width=900,
+            height=440,
+            scale=2,
+        )
+        for image_path in image_paths:
+            image = Image(str(image_path), width=7.25 * inch, height=3.55 * inch)
+            story.extend([image, Spacer(1, 0.12 * inch)])
+
+        story.append(Paragraph("AI Insights", styles["SectionHeading"]))
+        for key in ["revenue", "orders", "profit", "profit_margin"]:
+            if key not in analysis:
+                continue
+            insight = KeepTogether(
+                [
+                    Paragraph(f"<b>{escape(KPI_SPECS[key]['label'])}</b>", styles["InsightText"]),
+                    Paragraph(escape(analysis[key]), styles["InsightText"]),
+                    Spacer(1, 0.08 * inch),
+                ]
+            )
+            story.append(insight)
+
+        if analysis.get("ai_summary"):
+            story.append(Paragraph("AI Summary", styles["SectionHeading"]))
+            story.append(Paragraph(escape(analysis["ai_summary"]), styles["InsightText"]))
+
+        doc.build(story)
+    return buffer.getvalue()
 
 
 def render_ai_insights(analysis: dict[str, str]) -> None:
+    # Renders the per-KPI AI commentary cards.
+    # These are the focused explanations for each metric, not the overall executive summary.
     for key in ["revenue", "orders", "profit", "profit_margin"]:
         if key in analysis:
             st.markdown(
@@ -519,6 +753,8 @@ def render_ai_insights(analysis: dict[str, str]) -> None:
 
 
 def render_ai_summary(analysis: dict[str, str]) -> None:
+    # Renders the single synthesized AI summary paragraph.
+    # Claude is asked to keep this to one paragraph so it works as a leadership takeaway.
     ai_summary = analysis.get("ai_summary")
     if not ai_summary:
         return
@@ -534,11 +770,15 @@ def render_ai_summary(analysis: dict[str, str]) -> None:
 
 
 def main() -> None:
+    # Main Streamlit flow from data loading to KPIs, charts, and AI commentary.
+    # Streamlit reruns this script on interaction, so session state controls generated AI output.
     _inject_styles()
 
     render_header()
 
     with st.sidebar:
+        # Sidebar contains controls that affect the whole dashboard.
+        # The main page stays focused on the analysis output.
         st.header("Data")
         uploaded = st.file_uploader("Upload CSV", type=["csv"])
         demo_datasets = list_demo_datasets()
@@ -569,12 +809,14 @@ def main() -> None:
         st.info("Upload a CSV or choose a built-in demo dataset to begin.")
         return
 
+    # Detect columns, then let the user override them in the mapping expander.
     schema = infer_initial_schema(raw)
     schema_overrides = render_column_mapping(raw, schema)
     schema = detect_schema(raw, overrides=schema_overrides)
     group_options = ["None"] + schema.dimension_columns
     dataset_id = df_fingerprint(raw)
 
+    # Show the resolved mapping after overrides so the user knows what the app is using.
     render_status_band(
         [
             ("Rows Loaded", f"{len(raw):,}"),
@@ -587,23 +829,28 @@ def main() -> None:
     group_choice = st.selectbox("Optional drill-down", group_options)
     group_by = None if group_choice == "None" else group_choice
 
+    # Compute all KPI tables from the selected dataset and mapping.
     result = cached_compute(raw, group_by, schema_overrides)
     latest = result["latest"]
     previous = result["previous"]
     monthly = result["monthly"]
 
+    # The dashboard reads top to bottom: facts first, trends second, AI interpretation third.
     st.subheader("Top KPIs")
     render_kpi_cards(latest, previous)
 
     st.subheader("Trend Explorer")
-    render_charts(monthly, group_by)
+    figures = build_chart_figures(monthly, group_by)
+    render_charts(figures)
 
     st.subheader("AI Insights")
     context = build_kpi_context(result)
 
+    # Clear old AI output when the inputs behind it are no longer the same.
     current_signature = analysis_signature(dataset_id, schema_overrides, group_by, model)
     if st.session_state.get("analysis_signature") != current_signature:
         st.session_state.pop("ai_analysis", None)
+        st.session_state.pop("pdf_report", None)
         st.session_state["analysis_signature"] = current_signature
 
     st.caption(
@@ -611,7 +858,10 @@ def main() -> None:
     )
     generate_label = "Generate Claude Insights and Summary" if enable_ai and key_available else "Generate Demo Insights"
     if st.button(generate_label, type="primary"):
+        # This is the only place the app calls Claude or creates fallback commentary.
+        # Keeping it behind a button makes refreshes safe and keeps API usage intentional.
         with st.spinner("Generating AI insights..."):
+            st.session_state.pop("pdf_report", None)
             st.session_state["ai_analysis"] = cached_ai_analysis(
                 context,
                 model=model,
@@ -621,6 +871,8 @@ def main() -> None:
 
     analysis = st.session_state.get("ai_analysis")
     if not analysis:
+        # Keep the data preview available even before commentary is generated.
+        # This lets someone inspect the CSV before spending an API call.
         st.info("Use Radio Switch Button on sidebar to switch between AI and Demo modes, make sure your API key is configured.")
         st.subheader("Data Preview")
         st.dataframe(raw.head(100), width="stretch")
@@ -638,20 +890,32 @@ def main() -> None:
     st.subheader("Data Preview")
     st.dataframe(raw.head(100), width="stretch")
 
-    report_sections = [
-        f"{KPI_SPECS[key]['label']}: {analysis[key]}"
-        for key in ["revenue", "orders", "profit", "profit_margin"]
-        if key in analysis
-    ]
-    if analysis.get("ai_summary"):
-        report_sections.append(f"AI Summary: {analysis['ai_summary']}")
-    report_text = "\n\n".join(report_sections)
-    st.download_button(
-        "Download KPI summary",
-        data=report_text,
-        file_name="smart_kpi_summary.txt",
-        mime="text/plain",
-    )
+    if st.button("Prepare KPI PDF"):
+        try:
+            # This PDF is the take-home friendly artifact from the dashboard.
+            # It packages the KPI cards, chart images, and generated commentary into one file.
+            with st.spinner("Preparing PDF export..."):
+                st.session_state["pdf_report"] = build_pdf_report(
+                    latest=latest,
+                    previous=previous,
+                    figures=figures,
+                    analysis=analysis,
+                    dataset_id=dataset_id,
+                )
+        except Exception as exc:
+            st.session_state.pop("pdf_report", None)
+            st.error(
+                "PDF export needs reportlab and kaleido installed. Run pip install -r requirements.txt, then restart Streamlit."
+            )
+            st.caption(f"Export error: {exc}")
+
+    if st.session_state.get("pdf_report"):
+        st.download_button(
+            "Download KPI PDF",
+            data=st.session_state["pdf_report"],
+            file_name="pvlseon_kpi_report.pdf",
+            mime="application/pdf",
+        )
 
 
 if __name__ == "__main__":

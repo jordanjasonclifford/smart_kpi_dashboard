@@ -8,6 +8,8 @@ from pandas.api.types import is_object_dtype, is_string_dtype
 
 
 KPI_SPECS = {
+    # Central KPI display config used by cards, exports, and insight labels.
+    # Keeping labels and formatting here avoids repeating display rules in the app.
     "revenue": {"label": "Revenue", "kind": "currency"},
     "orders": {"label": "Orders", "kind": "integer"},
     "profit": {"label": "Profit", "kind": "currency"},
@@ -20,6 +22,8 @@ KPI_SPECS = {
 
 @dataclass(frozen=True)
 class Schema:
+    # Holds the resolved column names for the active dataset.
+    # Most fields are optional because uploaded CSVs may not have every KPI input.
     date_column: str
     revenue_column: str
     profit_column: str | None
@@ -34,6 +38,8 @@ class Schema:
 
 
 def _find_column(columns: list[str], candidates: list[str]) -> str | None:
+    # Matches common column names without requiring the CSV to be perfectly named.
+    # It first checks exact normalized names, then falls back to substring matches.
     normalized = {col.lower().strip().replace(" ", "_"): col for col in columns}
     for candidate in candidates:
         if candidate in normalized:
@@ -45,6 +51,8 @@ def _find_column(columns: list[str], candidates: list[str]) -> str | None:
 
 
 def detect_schema(df: pd.DataFrame, overrides: dict[str, str | None] | None = None) -> Schema:
+    # Detects the best column mapping, then applies user overrides from the UI.
+    # Date and revenue are required because the dashboard is built around monthly sales trends.
     columns = list(df.columns)
     overrides = overrides or {}
 
@@ -63,6 +71,8 @@ def detect_schema(df: pd.DataFrame, overrides: dict[str, str | None] | None = No
     profit_column = overrides.get("profit_column") or _find_column(
         columns, ["profit", "gross_profit", "net_profit"]
     )
+    # Unique order IDs are preferred for order count.
+    # Quantity is handled separately as units sold.
     order_id_column = overrides.get("order_id_column") or _find_column(
         columns, ["order_id", "transaction_id", "invoice_no", "invoice"]
     )
@@ -101,6 +111,8 @@ def detect_schema(df: pd.DataFrame, overrides: dict[str, str | None] | None = No
     for col in columns:
         if col in known:
             continue
+        # Dimensions are text-like columns with a manageable number of groups.
+        # This keeps drill-downs useful without flooding the chart legend.
         is_dimension_type = (
             is_object_dtype(df[col])
             or is_string_dtype(df[col])
@@ -125,6 +137,7 @@ def detect_schema(df: pd.DataFrame, overrides: dict[str, str | None] | None = No
 
 
 def _safe_divide(numerator: pd.Series, denominator: pd.Series) -> pd.Series:
+    # Prevents divide-by-zero errors from breaking KPI calculations.
     denominator = denominator.replace({0: pd.NA})
     return (numerator / denominator).fillna(0)
 
@@ -134,8 +147,11 @@ def compute_kpis(
     group_by: str | None = None,
     schema_overrides: dict[str, str | None] | None = None,
 ) -> dict[str, Any]:
+    # Builds monthly KPI tables from the selected dataset and column mapping.
+    # The return shape is designed for three consumers: KPI cards, charts, and Claude context.
     schema = detect_schema(df, overrides=schema_overrides)
     work = df.copy()
+    # Convert dates up front so every dataset rolls up to monthly periods the same way.
     work[schema.date_column] = pd.to_datetime(work[schema.date_column], errors="coerce")
     work = work.dropna(subset=[schema.date_column])
     work["period"] = work[schema.date_column].dt.to_period("M").dt.to_timestamp()
@@ -151,13 +167,18 @@ def compute_kpis(
         schema.active_column,
     ]
     for column in [col for col in metric_columns if col]:
+        # Coerce numeric fields so commas, blanks, or bad values do not crash the app.
+        # Bad numeric cells become zero instead of dropping the whole row.
         work[column] = pd.to_numeric(work[column], errors="coerce").fillna(0)
 
     group_cols = ["period"]
     if group_by and group_by in work.columns:
+        # Optional drill-down adds one more grouping level for charts.
         group_cols.append(group_by)
 
     agg_map = {schema.revenue_column: "sum"}
+    # Build the aggregation map only from columns that actually exist in this dataset.
+    # Sum is used for additive metrics, while discount is averaged across rows.
     if schema.profit_column:
         agg_map[schema.profit_column] = "sum"
     if schema.order_column:
@@ -174,6 +195,8 @@ def compute_kpis(
         agg_map[schema.active_column] = "sum"
 
     monthly = work.groupby(group_cols, dropna=False).agg(agg_map).reset_index()
+    # Rename user-selected columns into stable internal names.
+    # Everything downstream can use revenue, profit, orders, etc.
     monthly = monthly.rename(
         columns={
             schema.revenue_column: "revenue",
@@ -188,6 +211,7 @@ def compute_kpis(
     )
 
     if schema.order_id_column:
+        # Unique order IDs are a better order count than summing quantity.
         order_counts = (
             work.groupby(group_cols, dropna=False)[schema.order_id_column]
             .nunique()
@@ -197,12 +221,15 @@ def compute_kpis(
             order_counts, on=group_cols, how="left"
         )
     if "orders" not in monthly:
+        # Last resort fallback for datasets without an order ID.
         monthly["orders"] = monthly["revenue"].gt(0).astype(int)
     if "units_sold" not in monthly:
+        # If no quantity column exists, order count is the closest available proxy.
         monthly["units_sold"] = monthly["orders"]
     if "avg_discount" not in monthly:
         monthly["avg_discount"] = 0
     if "profit" not in monthly:
+        # Profit is optional so non-profit datasets can still run.
         monthly["profit"] = 0
     if "sessions" not in monthly:
         monthly["sessions"] = monthly["orders"]
@@ -213,11 +240,14 @@ def compute_kpis(
 
     monthly["conversion_rate"] = _safe_divide(monthly["orders"], monthly["sessions"])
     monthly["churn_rate"] = _safe_divide(monthly["churned_customers"], monthly["active_customers"])
+    # These are the main derived KPIs used by the dashboard.
+    # Conversion and churn are retained internally for compatibility but are not shown in this version.
     monthly["avg_order_value"] = _safe_divide(monthly["revenue"], monthly["orders"])
     monthly["profit_margin"] = _safe_divide(monthly["profit"], monthly["revenue"])
     monthly = monthly.sort_values(group_cols)
 
     overall = (
+        # Overall ignores the optional drill-down so the top KPI cards always show total business performance.
         monthly.groupby("period", as_index=False)
         .agg(
             revenue=("revenue", "sum"),
@@ -240,6 +270,7 @@ def compute_kpis(
     previous = overall.iloc[-2].to_dict() if len(overall) > 1 else None
 
     return {
+        # Return both chart-ready data and summary rows for the UI.
         "schema": schema,
         "monthly": monthly,
         "overall": overall,
@@ -250,6 +281,8 @@ def compute_kpis(
 
 
 def format_metric(value: Any, kind: str) -> str:
+    # Formats raw KPI numbers for display cards.
+    # The kind comes from KPI_SPECS so formatting stays consistent across the app.
     if pd.isna(value):
         return "n/a"
     if kind == "currency":
@@ -262,6 +295,8 @@ def format_metric(value: Any, kind: str) -> str:
 
 
 def format_delta(current: Any, previous: Any, kind: str) -> str:
+    # Creates the prior-month movement label shown in KPI cards.
+    # It uses percent change for every displayed type so the badge language stays simple.
     if previous is None or pd.isna(previous) or float(previous) == 0:
         return "No prior period comparison"
     change = (float(current) - float(previous)) / abs(float(previous))
@@ -270,9 +305,12 @@ def format_delta(current: Any, previous: Any, kind: str) -> str:
 
 
 def build_kpi_context(result: dict[str, Any]) -> dict[str, Any]:
+    # Shrinks the KPI result into the small payload Claude needs.
+    # Claude should explain the metrics, not receive the whole raw dataset.
     overall = result["overall"].copy()
     context_rows = []
     for _, row in overall.tail(6).iterrows():
+        # Send only recent history so the model focuses on the latest trend.
         context_rows.append(
             {
                 "period": row["period"].strftime("%Y-%m"),
